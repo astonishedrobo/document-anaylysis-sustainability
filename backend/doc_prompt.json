@@ -1,0 +1,16 @@
+{   
+    "questions": {
+        "Q1": "What are the key sustainability focus areas mentioned in the document?",
+        "Q2": "What are the key concern identified for each of the focus areas?",
+        "Q3": "What are the mitigation strategies mentioned for each of the focus areas?",
+        "Q4": "What are the specific actions and their detailed action plans for each focus area?"
+
+    },
+
+    "postfix": {
+        "Q1": "return a list of focus areas mentioned in the document in json format.",
+        "Q2": "return a list in json format with detailed answers.",
+        "Q3": "return a list in json format with detailed answers.",
+        "Q4": "return a list in json format with detailed answers."
+    }
+}

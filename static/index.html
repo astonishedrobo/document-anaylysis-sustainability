@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Q&A System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chatHistory {
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        #questionInput {
+            width: 70%;
+            padding: 5px;
+        }
+        button {
+            padding: 5px 10px;
+        }
+        #uploadSection, #chatSection {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Document Q&A System</h1>
+    
+    <div id="uploadSection">
+        <h2>1. Upload PDF</h2>
+        <input type="file" id="pdfFile" accept=".pdf">
+        <button onclick="uploadPDF()">Upload</button>
+        <p id="uploadStatus"></p>
+    </div>
+
+    <div id="chatSection" style="display:none;">
+        <h2>2. Ask Questions</h2>
+        <div id="chatHistory"></div>
+        <input type="text" id="questionInput" placeholder="Enter your question here">
+        <button onclick="askQuestion()">Ask</button>
+    </div>
+
+    <script>
+    function uploadPDF() {
+    const fileInput = document.getElementById('pdfFile');
+    const file = fileInput.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('pdf', file);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('uploadStatus').textContent = 'File uploaded successfully!';
+            document.getElementById('chatSection').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('uploadStatus').textContent = 'Error uploading file.';
+        });
+    } else {
+        document.getElementById('uploadStatus').textContent = 'Please select a file first.';
+    }
+}
+
+function askQuestion() {
+    const question = document.getElementById('questionInput').value;
+    if (question) {
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ question: question })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const chatHistory = document.getElementById('chatHistory');
+            if (data.answer) {
+                chatHistory.innerHTML += `<p><strong>You:</strong> ${question}</p>`;
+                chatHistory.innerHTML += `<p><strong>AI:</strong> ${data.answer}</p>`;
+            } else {
+                chatHistory.innerHTML += `<p><strong>Error:</strong> No valid answer received.</p>`;
+            }
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            document.getElementById('questionInput').value = '';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML += `<p><strong>Error:</strong> Failed to get an answer. Please try again.</p>`;
+        });
+    } else {
+        alert('Please enter a question.');
+    }
+}
+
+    </script>
+</body>
+</html>

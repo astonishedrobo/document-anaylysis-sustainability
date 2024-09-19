@@ -1,0 +1,13 @@
+{   
+    "questions": {
+        "Q1": "What are the key sustainability focus areas mentioned in the document?",
+        "Q2": "List all the subtacks/sub-missions/sub-focus mentioned under each focus area along with the target figures, budget allocated and timelines mentioned for these, if any.",
+        "Q3": "What are the best practices or lessons learnt mentioned for the tasks, if any."
+    },
+
+    "postfix": {
+        "Q1": "return a list of focus areas mentioned in the document in json format.",
+        "Q2": "for each focus area, return a list of subtacks mentioned along with the target figures, budget allocated and timelines mentioned for these in json format, if any.",
+        "Q3": "for each task, return the best practices or lessons learnt mentioned in json format, if any."
+    }
+}
