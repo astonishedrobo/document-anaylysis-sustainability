@@ -7,9 +7,15 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.prompts import PromptTemplate
+from langchain_community.llms import Ollama
 import requests
 import json
+from langchain.schema import Document
 
+
+############################################################################################################
+# Utility Functions
+############################################################################################################
     
 def read_pdf(file_path: str, return_list: bool = False):
     pdf = PdfReader(file_path)
@@ -65,18 +71,53 @@ def augment_link_content(file_path: str):
 
     return augmentation_text
 
-def split_and_store_db(text: str):
+def text_to_chunks(text: str, chunk_size: int = 1000, overlap: int = 100):
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    chunks = splitter.create_documents([text])
+    # Split the text into chunks
+    chunks = splitter.split_text(text)
+    
+    # Create documents with chunk number as metadata
+    documents = []
+    for i, chunk in enumerate(chunks):
+        metadata = {"chunk_number": i}
+        documents.append(Document(page_content=chunk, metadata=metadata))
+    
+    return documents
 
+def split_and_store_db(text: str):
+    chunks = text_to_chunks(text)
     vector_db = Chroma.from_documents(documents=chunks, embedding=OpenAIEmbeddings())
+    
     return vector_db
 
 def join_context(docs):
     return '\n\n'.join([doc.page_content for doc in docs])
 
 def get_llm(model_name: str = 'gpt-3.5-turbo'):
-    return ChatOpenAI(model_name=model_name)
+    if 'gpt' in model_name:
+        return ChatOpenAI(model_name=model_name)
+    else: 
+        return Ollama(model=model_name)
+    
+def load_prompt_template(template_path: str):
+    with open(template_path, 'r') as file:
+        return file.read()
+    
+def get_news_corpus(path: str, return_db: bool = False):
+    corpus = []
+    with open(path, 'r') as file:
+        text = json.load(file)
+        for news in text:
+            corpus.append(news['article'])
+
+    if return_db:
+        return corpus, split_and_store_db('\n\n'.join(corpus))
+    else:
+        return '\n\n'.join(corpus)
+    
+############################################################################################################
+# Functions for analyzing documents
+############################################################################################################
 
 
 def analyze_doc_rag(file_path: str, question: str, augment_link: str = False, previous_context: str = None, model_name: str = 'gpt-3.5-turbo'):
@@ -121,48 +162,37 @@ def analyze_doc_rag(file_path: str, question: str, augment_link: str = False, pr
 
     return answer
 
-
-def analyze_doc(text: str, question: str, augment_link: str = False, model_name: str = 'gpt-3.5-turbo'):
+def analyze_doc(text: str, question: str, augment_link: str = False, model_name: str = 'gpt-3.5-turbo', return_json: bool = True):
     # Define llm
     llm = get_llm(model_name=model_name)
 
     # Define prompt
-    template = '''Use the following pieces of context to answer the question at the end in JSON format.
-        If you don't know the answer, just return null, don't try to make up an answer.
-        
+    parent_dir = os.path.dirname(os.path.dirname(__file__))
+    template_path = os.path.join(parent_dir, 'prompts', 'analyze_doc.txt' if not return_json else 'analyze_doc_json.txt')
+    template = load_prompt_template(template_path)
 
-        Context: {context}
-
-        Question: {question}
-
-        Answer: 
-    '''
     prompt = PromptTemplate.from_template(template)
 
     # llm Chain
-    llm_chain = (
-        {"context": lambda x: text, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | JsonOutputParser()
-    )
+    if return_json:
+        llm_chain = (
+            {"context": lambda x: text, "question": RunnablePassthrough()}
+            | prompt
+            | llm
+            | JsonOutputParser()
+        )
+    else:
+        llm_chain = (
+            {"context": lambda x: text, "question": RunnablePassthrough()}
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
 
     # Run the chain
     answer = llm_chain.invoke(question)
 
     return answer
-
-def get_news_corpus(path: str, return_db: bool = False):
-    corpus = []
-    with open(path, 'r') as file:
-        text = json.load(file)
-        for news in text:
-            corpus.append(news['article'])
-
-    if return_db:
-        return corpus, split_and_store_db('\n\n'.join(corpus))
-    else:
-        return '\n\n'.join(corpus)
 
 def analyze_news_corpus(question: str, text: str = None, vector_db = None, model_name: str = 'gpt-3.5-turbo'):
     if not vector_db:

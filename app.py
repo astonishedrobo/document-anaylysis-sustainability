@@ -3,7 +3,7 @@ from flask import Flask, request, send_from_directory, jsonify, session
 from werkzeug.utils import secure_filename
 import os
 import uuid
-from rag_pipeline import RAGPipeline
+from utils.analysis.qa_pipeline import RAGPipeline
 
 app = Flask(__name__, static_url_path='', static_folder='static')
 
@@ -11,7 +11,6 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 rag_pipeline = RAGPipeline()
-RESPONSES = []
 
 @app.route('/')
 def index():
@@ -51,12 +50,7 @@ def chat():
         return jsonify({'error': 'No question provided'}), 400
     
     try:
-        # chat_history = responses[-1]['chat_history'] if responses else None
-        print(len(RESPONSES))
-        response = rag_pipeline.get_answer(question, chat_history=RESPONSES[-1]['chat_history'] if RESPONSES else None)
-        # answer_str = response.get('answer', str(response))
-        RESPONSES.append(response)
-        # print(chat_history)
+        response = rag_pipeline.get_answer(question)
         
         return jsonify({
             'answer': str(response['answer'])
