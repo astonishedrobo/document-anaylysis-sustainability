@@ -2,6 +2,8 @@ from PyPDF2 import PdfReader
 import os
 import shutil
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_experimental.text_splitter import SemanticChunker
+from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.runnables import RunnablePassthrough
@@ -71,8 +73,12 @@ def augment_link_content(file_path: str):
 
     return augmentation_text
 
-def text_to_chunks(text: str, chunk_size: int = 1000, overlap: int = 100):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+def text_to_chunks(text: str, chunk_size: int = 1000, overlap: int = 100, split_criteria: str = ""):
+    if split_criteria == "semantic":
+        splitter = SemanticChunker(OpenAIEmbeddings())
+    else:
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+
     # Split the text into chunks
     chunks = splitter.split_text(text)
     

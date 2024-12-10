@@ -1,7 +1,3 @@
-# rag_pipeline.py
-
-from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
 from langchain.schema import HumanMessage, AIMessage
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
